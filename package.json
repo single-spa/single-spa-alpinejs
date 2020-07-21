@@ -1,0 +1,47 @@
+{
+  "name": "single-spa-alpinejs",
+  "version": "1.0.0",
+  "description": "Single-spa helpers for alpinejs",
+  "main": "",
+  "scripts": {
+    "format": "prettier --write \"./**/*\"",
+    "build": "rollup -c",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint": "eslint src",
+    "prepublishOnly": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/single-spa/single-spa-alpinejs.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick && concurrently -n \"yarn test\" \"yarn lint\""
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/single-spa/single-spa-alpinejs/issues"
+  },
+  "homepage": "https://github.com/single-spa/single-spa-alpinejs#readme",
+  "devDependencies": {
+    "@babel/core": "^7.10.5",
+    "@babel/preset-env": "^7.10.4",
+    "@rollup/plugin-babel": "^5.1.0",
+    "@types/jest": "^26.0.5",
+    "concurrently": "^5.2.0",
+    "eslint": "^7.5.0",
+    "eslint-config-important-stuff": "^1.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "husky": "^4.2.5",
+    "jest": "^26.1.0",
+    "jest-cli": "^26.1.0",
+    "prettier": "^2.0.5",
+    "pretty-quick": "^2.0.1",
+    "rollup": "^2.22.1",
+    "rollup-plugin-terser": "^6.1.0"
+  }
+}
