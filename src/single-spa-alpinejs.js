@@ -1,17 +1,43 @@
-// Opts are passed into single-spa-alpinejs when creating an application/parcel
+/**
+ * Opts are passed into single-spa-alpinejs when creating an application/parcel
+ * template: (required) main template as string
+ * xData: (optional) externally provided x-data as an object or function. The single spa env props are passed to this if its a function
+ * xInit: (optional) externally provided x-init as a function it takes an argument as the dom element ID of the application/parcel root element. This will only be used if xData is also provided
+ */
 const defaultOpts = {
-  // required
-  template: null,
+  template: null, // required
+  xData: undefined,
+  xInit: undefined,
 };
 
 export default function singleSpaAlpineJs(opts) {
   opts = Object.assign({}, defaultOpts, opts);
 
   const typeofTemplate = typeof opts.template;
+  const typeofXData = typeof opts.xData;
+  const typeofXInit = typeof opts.xInit;
 
   if (typeofTemplate !== "function" && typeofTemplate !== "string") {
     throw Error(
       `single-spa-alpinejs: opts.template must be provided as a string or a function that returns a promise that resolves with a string`
+    );
+  }
+
+  // xData can be optional , but when provided needs to be either a function or an object
+  if (
+    typeofXData !== "undefined" &&
+    typeofXData !== "function" &&
+    typeofXData !== "object"
+  ) {
+    throw Error(
+      `single-spa-alpinejs: optional parameter opts.xData if provided must be as an object or a function that returns an object`
+    );
+  }
+
+  // xInit can be optional , but when provided needs to be a function
+  if (typeofXInit !== "undefined" && typeofXInit !== "function") {
+    throw Error(
+      `single-spa-alpinejs: optional parameter opts.xInit if provided must be as a function that returns a promise`
     );
   }
 
@@ -33,6 +59,9 @@ function bootstrap(opts, props) {
 }
 
 function mount(opts, props) {
+  const typeofXInit = typeof opts.xInit;
+  const typeofXData = typeof opts.xData;
+
   return Promise.resolve()
     .then(() => {
       const templatePromise = opts.loadTemplate();
@@ -51,7 +80,6 @@ function mount(opts, props) {
       }
 
       const domElementGetter = chooseDomElementGetter(opts, props);
-
       if (typeof domElementGetter !== "function") {
         throw new Error(
           `single-spa-alpinejs: the domElementGetter for application '${
@@ -70,15 +98,43 @@ function mount(opts, props) {
       }
 
       domElement.innerHTML = template;
-      // TODO - create any global x-init functions that are needed
-      // TODO - pass single-spa props to the alpinejs application somehow. Maybe through domElement.__x.$data.singleSpaProps?
+      // TODO - create any global x-init,x-data functions that are needed
+      // setup opts x-data value
+      if (typeofXData !== "undefined") {
+        let attXdata = document.createAttribute("x-data"); // Add x-data attribute
+
+        if (typeofXData === "function") {
+          // TODO - pass single-spa props to the alpinejs application somehow. Maybe through domElement.__x.$data.singleSpaProps?
+          attXdata.value = JSON.stringify(opts.xData({ ...props })); // pass all singleSpaProps which will then are available to the xData function to consume
+        } else {
+          attXdata.value = JSON.stringify(opts.xData);
+        }
+
+        domElement.setAttributeNode(attXdata);
+
+        // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
+        if (typeofXInit !== "undefined") {
+          const appName = props.appName || props.name;
+          // create any global x-init functions that are needed
+          if (window.hasOwnProperty("xInitFn")) {
+            // add new x-init function globally for the specific ID
+            window.xInitFn = { ...window.xInitFn, [appName]: opts.xInit };
+          } else {
+            window.xInitFn = { [appName]: opts.xInit };
+          }
+
+          let attXInit = document.createAttribute("x-init"); // Add x-init attribute
+          attXInit.value = `xInitFn.${appName}('${appName}')`;
+          domElement.setAttributeNode(attXInit);
+        }
+      }
     });
 }
 
 function unmount(opts, props) {
   return Promise.resolve().then(() => {
     const domElementGetter = chooseDomElementGetter(opts, props);
-
+    const appName = props.appName || props.name;
     if (typeof domElementGetter !== "function") {
       throw new Error(
         `single-spa-alpinejs: the domElementGetter for application '${
@@ -98,6 +154,9 @@ function unmount(opts, props) {
 
     domElement.innerHTML = "";
     // TODO, remove any global functions that were used for x-init
+    if (window.hasOwnProperty("xInitFn")) {
+      delete window.xInitFn[`${appName}`];
+    }
   });
 }
 
