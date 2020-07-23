@@ -198,7 +198,10 @@ describe(`single-spa-alpinejs`, () => {
           `singleSpaAlpineXInit.${appName}('alpine-${appName}')`.trim()
         );
         expect(domEl.innerHTML.trim()).toBe(appThreeTemplate.trim());
-        expect(window.singleSpaAlpineXInit).toHaveProperty(`${appName}`,appThreeFn);
+        expect(window.singleSpaAlpineXInit).toHaveProperty(
+          `${appName}`,
+          appThreeFn
+        );
       });
   });
 

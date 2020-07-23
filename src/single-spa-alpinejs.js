@@ -82,7 +82,7 @@ function createAlpineElement(template, opts, props) {
       if (window.hasOwnProperty("singleSpaAlpineXInit")) {
         // add new x-init function globally for the specific ID
         // TODO: The line below is commented out as it fails when we run the
-        // jest tests so using the alternative instead 
+        // jest tests so using the alternative instead
         // window.singleSpaAlpineXInit[appName] = opts.xInit;
         window.singleSpaAlpineXInit = {
           ...window.singleSpaAlpineXInit,
