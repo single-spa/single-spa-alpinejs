@@ -25,7 +25,7 @@ export default function singleSpaAlpineJs(opts) {
 
   // xData can be optional , but when provided needs to be either a function or an object
   if (
-    typeofXData !== "undefined" &&
+    opts.xData &&
     typeofXData !== "function" &&
     typeofXData !== "object"
   ) {
