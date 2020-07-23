@@ -78,13 +78,18 @@ describe(`single-spa-alpinejs`, () => {
     div.id = "test-div";
     document.body.appendChild(div);
 
+    const div2 = document.createElement("div");
+    div2.id = "test2-div";
+    document.body.appendChild(div2);
+
     props = { name: "test" };
     propsTwo = { name: "testTwo" };
+    window.singleSpaAlpineXInit = {};
   });
 
   afterEach(() => {
     document.getElementById("test-div").remove();
-    window.singleSpaAlpineXInit = null;
+    document.getElementById("test2-div").remove();
   });
 
   it(`Can create lifecycle functions`, () => {
@@ -148,6 +153,39 @@ describe(`single-spa-alpinejs`, () => {
     }).toThrow();
   });
 
+  it(`throws if you provide a function returning non-string template`, async () => {
+    const opts = {
+      template: () => 123,
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+    await lifecycles.bootstrap(props);
+
+    let message = false;
+    try {
+      await lifecycles.mount(props);
+    } catch (e) {
+      message = e.message;
+    }
+    expect(message).toBeTruthy();
+  });
+
+  it(`throws if you provide a domGetter returning an invalid div`, async () => {
+    const opts = {
+      template: appOneTemplate,
+      domElementGetter: () => null
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+    await lifecycles.bootstrap(props);
+
+    let message = false;
+     try { 
+      await lifecycles.mount(props);
+     } catch (e) {
+      message = e.message;
+    } 
+    expect(message).toBeTruthy();
+  });
+
   it(`throws if you provide a domElementGetter that is not a function`, () => {
     expect(() => {
       singleSpaAlpinejs({
@@ -157,11 +195,12 @@ describe(`single-spa-alpinejs`, () => {
   });
 
   it(`renders function template with x-data , template and props`, () => {
-    const lifecycles = singleSpaAlpinejs({
+    const opts = {
       template: () => Promise.resolve(appTwoTemplate.trim()),
       xData: { open: false },
       domElementGetter,
-    });
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
 
     return lifecycles
       .bootstrap(props)
@@ -172,7 +211,8 @@ describe(`single-spa-alpinejs`, () => {
           JSON.stringify(getCombinedProps(props, { open: false })).trim()
         );
         expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
-      });
+      })
+      .then(() => lifecycles.unmount(opts, props));
   });
 
   it(`renders function template with x-data , x-init template and props`, () => {
@@ -182,10 +222,9 @@ describe(`single-spa-alpinejs`, () => {
       xInit: appThreeFn,
       domElementGetter,
     };
-
+    delete window["singleSpaAlpineXInit"];
     const lifecycles = singleSpaAlpinejs(opts);
     const appName = props.appName || props.name;
-    expect(window.singleSpaAlpineXInit).not.toBeTruthy();
     return lifecycles
       .bootstrap(props)
       .then(() => lifecycles.mount(props))
@@ -202,14 +241,16 @@ describe(`single-spa-alpinejs`, () => {
           `${appName}`,
           appThreeFn
         );
-      });
+      })
+      .then(() => lifecycles.unmount(props));
   });
 
   it(`renders function template with function with only template returning a promise`, () => {
-    const lifecycles = singleSpaAlpinejs({
+    const opts = {
       template: () => Promise.resolve(appOneTemplate.trim()),
       domElementGetter,
-    });
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
 
     return lifecycles
       .bootstrap(props)
@@ -217,7 +258,8 @@ describe(`single-spa-alpinejs`, () => {
       .then(() => {
         const domEl = domElementAlpineGetter(props.name);
         expect(domEl.innerHTML.trim()).toBe(appOneTemplate.trim());
-      });
+      })
+      .then(() => lifecycles.unmount(props));
   });
 
   it(`throws if you provide a xInit that is not a function`, () => {
@@ -246,7 +288,7 @@ describe(`single-spa-alpinejs`, () => {
     }).toThrow();
   });
 
-  it(`renders multiple parcels with x-init`, () => {
+  it(`renders multiple parcels with x-init`, async () => {
     const optsOne = {
       template: appThreeTemplate,
       xData: (data) => appThreeData(data), // pass props to x-data
@@ -257,23 +299,20 @@ describe(`single-spa-alpinejs`, () => {
     const optsTwo = {
       template: () => Promise.resolve(appTwoTemplate.trim()),
       xData: { open: false },
-      domElementGetterTwo,
+      domElementGetter: domElementGetterTwo,
     };
 
     const lifecyclesOne = singleSpaAlpinejs(optsOne);
     const lifecyclesTwo = singleSpaAlpinejs(optsTwo);
-    expect(window.singleSpaAlpineXInit).not.toBeTruthy();
-    lifecyclesOne
-      .bootstrap(props)
-      .then(() => lifecyclesOne.mount(props))
-      .then(() => {
-        expect(window.singleSpaAlpineXInit).toHaveProperty(`${props.name}`);
-      });
-    lifecyclesTwo
-      .bootstrap(propsTwo)
-      .then(() => lifecyclesTwo.mount(propsTwo))
-      .then(() => {
-        expect(window.singleSpaAlpineXInit).toHaveProperty(`${propsTwo.name}`);
-      });
+    expect(window.singleSpaAlpineXInit).toEqual({});
+    await lifecyclesOne.bootstrap(props);
+    await lifecyclesOne.mount(props);
+    expect(window.singleSpaAlpineXInit).toHaveProperty(`${props.name}`);
+    await lifecyclesTwo.bootstrap(propsTwo);
+    await lifecyclesTwo.mount(propsTwo);
+    expect(window.singleSpaAlpineXInit).not.toHaveProperty(`${propsTwo.name}`);
+    await lifecyclesOne.unmount(props);
+    expect(window.singleSpaAlpineXInit).not.toHaveProperty(`${props.name}`);
+    await lifecyclesTwo.unmount(props);
   });
 });
