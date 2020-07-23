@@ -113,7 +113,7 @@ function mount(opts, props) {
         domElement.setAttributeNode(attXdata);
 
         // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
-        if (typeofXInit !== "undefined") {
+        if (opts.xInit) {
           const appName = props.appName || props.name;
           // create any global x-init functions that are needed
           if (window.hasOwnProperty("xInitFn")) {
