@@ -3,6 +3,13 @@ import singleSpaAlpinejs from "./single-spa-alpinejs";
 describe(`single-spa-alpinejs`, () => {
   const domElementGetter = () => document.getElementById("test-div");
   const domElementGetterTwo = () => document.getElementById("test2-div");
+  const domElementAlpineGetter = (id) =>
+    document.getElementById(`alpine-${id}`);
+
+  const getCombinedProps = (props, originalData) => {
+    return Object.assign({}, props, originalData);
+  };
+
   const appOneTemplate = `
     <div class="mui-panel" x-data="{ open: false }">
       <div class="mui--test-display1">Test x-show</div>
@@ -77,7 +84,7 @@ describe(`single-spa-alpinejs`, () => {
 
   afterEach(() => {
     document.getElementById("test-div").remove();
-    window.xInitFn = null;
+    window.singleSpaAlpineXInit = null;
   });
 
   it(`Can create lifecycle functions`, () => {
@@ -155,13 +162,14 @@ describe(`single-spa-alpinejs`, () => {
       xData: { open: false },
       domElementGetter,
     });
-    const domEl = domElementGetter();
+
     return lifecycles
       .bootstrap(props)
       .then(() => lifecycles.mount(props))
       .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
         expect(domEl.getAttribute("x-data").trim()).toBe(
-          JSON.stringify({ open: false }).trim()
+          JSON.stringify(getCombinedProps(props, { open: false })).trim()
         );
         expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
       });
@@ -176,21 +184,21 @@ describe(`single-spa-alpinejs`, () => {
     };
 
     const lifecycles = singleSpaAlpinejs(opts);
-    const domEl = domElementGetter();
     const appName = props.appName || props.name;
-    expect(window.xInitFn).not.toBeTruthy();
+    expect(window.singleSpaAlpineXInit).not.toBeTruthy();
     return lifecycles
       .bootstrap(props)
       .then(() => lifecycles.mount(props))
       .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
         expect(domEl.getAttribute("x-data").trim()).toBe(
-          JSON.stringify(appThreeData(props)).trim()
+          JSON.stringify(getCombinedProps(props, appThreeData(props))).trim()
         );
         expect(domEl.getAttribute("x-init").trim()).toBe(
-          `xInitFn.${appName}('${appName}')`.trim()
+          `singleSpaAlpineXInit.${appName}('alpine-${appName}')`.trim()
         );
         expect(domEl.innerHTML.trim()).toBe(appThreeTemplate.trim());
-        expect(window.xInitFn).toHaveProperty(`${appName}`);
+        expect(window.singleSpaAlpineXInit).toHaveProperty(`${appName}`,appThreeFn);
       });
   });
 
@@ -200,12 +208,11 @@ describe(`single-spa-alpinejs`, () => {
       domElementGetter,
     });
 
-    const domEl = domElementGetter();
-
     return lifecycles
       .bootstrap(props)
       .then(() => lifecycles.mount(props))
       .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
         expect(domEl.innerHTML.trim()).toBe(appOneTemplate.trim());
       });
   });
@@ -252,18 +259,18 @@ describe(`single-spa-alpinejs`, () => {
 
     const lifecyclesOne = singleSpaAlpinejs(optsOne);
     const lifecyclesTwo = singleSpaAlpinejs(optsTwo);
-    expect(window.xInitFn).not.toBeTruthy();
+    expect(window.singleSpaAlpineXInit).not.toBeTruthy();
     lifecyclesOne
       .bootstrap(props)
       .then(() => lifecyclesOne.mount(props))
       .then(() => {
-        expect(window.xInitFn).toHaveProperty(`${props.name}`);
+        expect(window.singleSpaAlpineXInit).toHaveProperty(`${props.name}`);
       });
     lifecyclesTwo
       .bootstrap(propsTwo)
       .then(() => lifecyclesTwo.mount(propsTwo))
       .then(() => {
-        expect(window.xInitFn).toHaveProperty(`${propsTwo.name}`);
+        expect(window.singleSpaAlpineXInit).toHaveProperty(`${propsTwo.name}`);
       });
   });
 });

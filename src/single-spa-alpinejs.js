@@ -15,7 +15,6 @@ export default function singleSpaAlpineJs(opts) {
 
   const typeofTemplate = typeof opts.template;
   const typeofXData = typeof opts.xData;
-  const typeofXInit = typeof opts.xInit;
 
   if (typeofTemplate !== "function" && typeofTemplate !== "string") {
     throw Error(
@@ -24,11 +23,7 @@ export default function singleSpaAlpineJs(opts) {
   }
 
   // xData can be optional , but when provided needs to be either a function or an object
-  if (
-    opts.xData &&
-    typeofXData !== "function" &&
-    typeofXData !== "object"
-  ) {
+  if (opts.xData && typeofXData !== "function" && typeofXData !== "object") {
     throw Error(
       `single-spa-alpinejs: optional parameter opts.xData if provided must be as an object or a function that returns an object`
     );
@@ -58,10 +53,56 @@ function bootstrap(opts, props) {
   return Promise.resolve();
 }
 
-function mount(opts, props) {
-  const typeofXInit = typeof opts.xInit;
+/**
+ * Create the Alpine Element
+ * @param {*} template - The final template
+ * @param {*} opts     - alpine options
+ * @param {*} props    - props
+ */
+function createAlpineElement(template, opts, props) {
   const typeofXData = typeof opts.xData;
+  // create child Element
+  let childElement = document.createElement("div");
+  childElement.id = `alpine-${props.name}`;
+  childElement.innerHTML = template;
+  const appName = props.appName || props.name;
+  // create any global x-init,x-data functions that are needed
+  // setup opts x-data value
+  if (opts.xData) {
+    const originalData =
+      typeofXData === "function" ? opts.xData({ ...props }) : opts.xData;
+    // merge the opts.xData with the single-spa props
+    const finalData = Object.assign({}, props, originalData);
+    // add x-data attribute
+    childElement.setAttribute("x-data", JSON.stringify(finalData));
 
+    // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
+    if (opts.xInit) {
+      // create any global x-init functions that are needed
+      if (window.hasOwnProperty("singleSpaAlpineXInit")) {
+        // add new x-init function globally for the specific ID
+        // TODO: The line below is commented out as it fails when we run the
+        // jest tests so using the alternative instead 
+        // window.singleSpaAlpineXInit[appName] = opts.xInit;
+        window.singleSpaAlpineXInit = {
+          ...window.singleSpaAlpineXInit,
+          [appName]: opts.xInit,
+        };
+      } else {
+        window.singleSpaAlpineXInit = { [appName]: opts.xInit };
+      }
+
+      // Add x-init attribute
+      childElement.setAttribute(
+        "x-init",
+        `singleSpaAlpineXInit.${appName}('alpine-${appName}')`
+      );
+    }
+  }
+  return childElement;
+}
+
+function mount(opts, props) {
   return Promise.resolve()
     .then(() => {
       const templatePromise = opts.loadTemplate();
@@ -97,37 +138,12 @@ function mount(opts, props) {
         );
       }
 
-      domElement.innerHTML = template;
-      // TODO - create any global x-init,x-data functions that are needed
-      // setup opts x-data value
-      if (opts.xData) {
-        let attXdata = document.createAttribute("x-data"); // Add x-data attribute
+      // create child Element
+      const alpineDomElement = createAlpineElement(template, opts, props);
 
-        if (typeofXData === "function") {
-          // TODO - pass single-spa props to the alpinejs application somehow. Maybe through domElement.__x.$data.singleSpaProps?
-          attXdata.value = JSON.stringify(opts.xData({ ...props })); // pass all singleSpaProps which will then are available to the xData function to consume
-        } else {
-          attXdata.value = JSON.stringify(opts.xData);
-        }
-
-        domElement.setAttributeNode(attXdata);
-
-        // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
-        if (opts.xInit) {
-          const appName = props.appName || props.name;
-          // create any global x-init functions that are needed
-          if (window.hasOwnProperty("xInitFn")) {
-            // add new x-init function globally for the specific ID
-            window.xInitFn[appName] = opts.xInit;
-          } else {
-            window.xInitFn = { [appName]: opts.xInit };
-          }
-
-          let attXInit = document.createAttribute("x-init"); // Add x-init attribute
-          attXInit.value = `xInitFn.${appName}('${appName}')`;
-          domElement.setAttributeNode(attXInit);
-        }
-      }
+      // wrap in container div
+      domElement.appendChild(alpineDomElement);
+      document.body.appendChild(domElement);
     });
 }
 
@@ -153,9 +169,17 @@ function unmount(opts, props) {
     }
 
     domElement.innerHTML = "";
-    // TODO, remove any global functions that were used for x-init
-    if (window.hasOwnProperty("xInitFn")) {
-      delete window.xInitFn[`${appName}`];
+    // remove any global functions that were used for x-init
+    if (opts.xInit) {
+      if (
+        !window.hasOwnProperty("singleSpaAlpineXInit") ||
+        typeof window.singleSpaAlpineXInit[`${appName}`] === "undefined"
+      ) {
+        throw new Error(
+          `single-spa-alpinejs: global function for xInit not found. Optional parameter opts.xInit if provided must be as a function that returns a promise`
+        );
+      }
+      delete window.singleSpaAlpineXInit[`${appName}`];
     }
   });
 }
