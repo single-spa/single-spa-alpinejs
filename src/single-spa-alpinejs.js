@@ -118,7 +118,7 @@ function mount(opts, props) {
           // create any global x-init functions that are needed
           if (window.hasOwnProperty("xInitFn")) {
             // add new x-init function globally for the specific ID
-            window.xInitFn = { ...window.xInitFn, [appName]: opts.xInit };
+            window.xInitFn[appName] = opts.xInit;
           } else {
             window.xInitFn = { [appName]: opts.xInit };
           }
