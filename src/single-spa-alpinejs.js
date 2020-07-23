@@ -35,7 +35,7 @@ export default function singleSpaAlpineJs(opts) {
   }
 
   // xInit can be optional , but when provided needs to be a function
-  if (typeofXInit !== "undefined" && typeofXInit !== "function") {
+  if (opts.xInit && typeof opts.xInit !== "function") {
     throw Error(
       `single-spa-alpinejs: optional parameter opts.xInit if provided must be as a function that returns a promise`
     );
