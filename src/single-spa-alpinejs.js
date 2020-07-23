@@ -100,7 +100,7 @@ function mount(opts, props) {
       domElement.innerHTML = template;
       // TODO - create any global x-init,x-data functions that are needed
       // setup opts x-data value
-      if (typeofXData !== "undefined") {
+      if (opts.xData) {
         let attXdata = document.createAttribute("x-data"); // Add x-data attribute
 
         if (typeofXData === "function") {
