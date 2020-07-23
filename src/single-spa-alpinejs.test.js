@@ -172,17 +172,17 @@ describe(`single-spa-alpinejs`, () => {
   it(`throws if you provide a domGetter returning an invalid div`, async () => {
     const opts = {
       template: appOneTemplate,
-      domElementGetter: () => null
+      domElementGetter: () => null,
     };
     const lifecycles = singleSpaAlpinejs(opts);
     await lifecycles.bootstrap(props);
 
     let message = false;
-     try { 
+    try {
       await lifecycles.mount(props);
-     } catch (e) {
+    } catch (e) {
       message = e.message;
-    } 
+    }
     expect(message).toBeTruthy();
   });
 
