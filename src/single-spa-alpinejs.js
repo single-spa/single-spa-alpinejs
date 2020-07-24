@@ -60,40 +60,50 @@ function bootstrap(opts, props) {
  * @param {*} props    - props
  */
 function createAlpineElement(template, opts, props) {
-  const typeofXData = typeof opts.xData;
-  // create child Element
-  let childElement = document.createElement("div");
-  childElement.id = `alpine-${props.name}`;
-  childElement.innerHTML = template;
-  const appName = props.appName || props.name;
   // create any global x-init,x-data functions that are needed
-  // setup opts x-data value
-  if (opts.xData) {
-    const originalData =
-      typeofXData === "function" ? opts.xData({ ...props }) : opts.xData;
-    // merge the opts.xData with the single-spa props
-    const finalData = Object.assign({}, props, originalData);
-    // add x-data attribute
-    childElement.setAttribute("x-data", JSON.stringify(finalData));
-
-    // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
-    if (opts.xInit) {
-      // create any global x-init functions that are needed
-      if (window.hasOwnProperty("singleSpaAlpineXInit")) {
-        // add new x-init function globally for the specific ID
-        window.singleSpaAlpineXInit[appName] = opts.xInit;
+  return Promise.resolve()
+    .then(() => {
+      // setup opts x-data value
+      if (opts.xData) {
+        return typeof opts.xData === "function"
+          ? opts.xData({ ...props })
+          : opts.xData;
       } else {
-        window.singleSpaAlpineXInit = { [appName]: opts.xInit };
+        return {};
+      }
+    })
+    .then((originalData) => {
+      // merge the opts.xData with the single-spa props
+      const finalData = Object.assign({}, props, originalData);
+
+      // create child Element
+      let childElement = document.createElement("div");
+      childElement.id = `alpine-${props.name}`;
+      childElement.innerHTML = template;
+      const appName = props.appName || props.name;
+
+      // add x-data attribute
+      childElement.setAttribute("x-data", JSON.stringify(finalData));
+
+      // Add x-init only if the x-data is provided as an object as both need to be on the same root dom element
+      if (opts.xInit) {
+        // create any global x-init functions that are needed
+        if (window.hasOwnProperty("singleSpaAlpineXInit")) {
+          // add new x-init function globally for the specific ID
+          window.singleSpaAlpineXInit[appName] = opts.xInit;
+        } else {
+          window.singleSpaAlpineXInit = { [appName]: opts.xInit };
+        }
+
+        // Add x-init attribute
+        childElement.setAttribute(
+          "x-init",
+          `singleSpaAlpineXInit.${appName}('alpine-${appName}')`
+        );
       }
 
-      // Add x-init attribute
-      childElement.setAttribute(
-        "x-init",
-        `singleSpaAlpineXInit.${appName}('alpine-${appName}')`
-      );
-    }
-  }
-  return childElement;
+      return childElement;
+    });
 }
 
 function mount(opts, props) {
@@ -114,6 +124,11 @@ function mount(opts, props) {
         );
       }
 
+      // create child Element
+      const alpineDomElement = createAlpineElement(template, opts, props);
+      return alpineDomElement;
+    })
+    .then((finalDomEl) => {
       const domElementGetter = chooseDomElementGetter(opts, props);
       if (typeof domElementGetter !== "function") {
         throw new Error(
@@ -132,11 +147,8 @@ function mount(opts, props) {
         );
       }
 
-      // create child Element
-      const alpineDomElement = createAlpineElement(template, opts, props);
-
       // wrap in container div
-      domElement.appendChild(alpineDomElement);
+      domElement.appendChild(finalDomEl);
       document.body.appendChild(domElement);
     });
 }

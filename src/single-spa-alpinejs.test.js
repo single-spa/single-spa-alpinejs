@@ -46,6 +46,21 @@ describe(`single-spa-alpinejs`, () => {
       );
   };
 
+  const appThreeDataFn = ({ title, name }) => {
+    var promise = new Promise(function (resolve, reject) {
+      resolve({
+        title,
+        intro:
+          'Implement a simple <code class="text-md text-pink-600">fetch()</code> request to render a list of items using Alpine.js :)',
+        users: [],
+        open: false,
+        name,
+      });
+    });
+
+    return promise;
+  };
+
   const appThreeTemplate = `
     <div class="w-full h-full text-gray-800">
         <h1 class="mt-0 mb-3 font-light text-3xl" x-text="title"><!-- title text --></h1>
@@ -194,7 +209,7 @@ describe(`single-spa-alpinejs`, () => {
     }).toThrow();
   });
 
-  it(`renders function template with x-data , template and props`, () => {
+  it(`renders function template with x-data as object, template and props`, () => {
     const opts = {
       template: () => Promise.resolve(appTwoTemplate.trim()),
       xData: { open: false },
@@ -215,10 +230,40 @@ describe(`single-spa-alpinejs`, () => {
       .then(() => lifecycles.unmount(opts, props));
   });
 
-  it(`renders function template with x-data , x-init template and props`, () => {
+  it(`renders function template with x-data as fn , x-init template and props`, () => {
     const opts = {
       template: appThreeTemplate,
       xData: (data) => appThreeData(data), // pass props to x-data
+      xInit: appThreeFn,
+      domElementGetter,
+    };
+    delete window["singleSpaAlpineXInit"];
+    const lifecycles = singleSpaAlpinejs(opts);
+    const appName = props.appName || props.name;
+    return lifecycles
+      .bootstrap(props)
+      .then(() => lifecycles.mount(props))
+      .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
+        expect(domEl.getAttribute("x-data").trim()).toBe(
+          JSON.stringify(getCombinedProps(props, appThreeData(props))).trim()
+        );
+        expect(domEl.getAttribute("x-init").trim()).toBe(
+          `singleSpaAlpineXInit.${appName}('alpine-${appName}')`.trim()
+        );
+        expect(domEl.innerHTML.trim()).toBe(appThreeTemplate.trim());
+        expect(window.singleSpaAlpineXInit).toHaveProperty(
+          `${appName}`,
+          appThreeFn
+        );
+      })
+      .then(() => lifecycles.unmount(props));
+  });
+
+  it(`renders function template with x-data as promise, x-init template and props`, () => {
+    const opts = {
+      template: appThreeTemplate,
+      xData: (data) => appThreeDataFn(data), // pass props to x-data
       xInit: appThreeFn,
       domElementGetter,
     };
