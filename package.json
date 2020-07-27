@@ -2,7 +2,7 @@
   "name": "single-spa-alpinejs",
   "version": "1.0.0",
   "description": "Single-spa helpers for alpinejs",
-  "main": "",
+  "main": "lib/umd/single-spa-alpinejs.js",
   "scripts": {
     "format": "prettier --write \"./**/*\"",
     "build": "rollup -c",
@@ -12,6 +12,9 @@
     "lint": "eslint src",
     "prepublishOnly": "yarn build"
   },
+  "files": [
+    "lib"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/single-spa/single-spa-alpinejs.git"
