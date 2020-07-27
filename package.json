@@ -1,6 +1,6 @@
 {
   "name": "single-spa-alpinejs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Single-spa helpers for alpinejs",
   "main": "lib/umd/single-spa-alpinejs.js",
   "scripts": {
