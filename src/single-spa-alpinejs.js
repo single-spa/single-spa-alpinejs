@@ -54,6 +54,14 @@ function bootstrap(opts, props) {
 }
 
 /**
+ * Remove special characters from the string
+ * @param {*} str 
+ */
+function normalizeString(str) {
+  return (str && typeof str === "string")?str.replace(/[^a-z0-9,. ]/gi, '_'):'';
+}
+
+/**
  * Create the Alpine Element
  * @param {*} template - The final template
  * @param {*} opts     - alpine options
@@ -81,7 +89,7 @@ function createAlpineElement(template, opts, props) {
       childElement.id = `alpine-${props.name}`;
       childElement.innerHTML = template;
       const appName = props.appName || props.name;
-
+      const normalizedName = normalizeString(appName);
       // add x-data attribute
       childElement.setAttribute("x-data", JSON.stringify(finalData));
 
@@ -90,15 +98,15 @@ function createAlpineElement(template, opts, props) {
         // create any global x-init functions that are needed
         if (window.hasOwnProperty("singleSpaAlpineXInit")) {
           // add new x-init function globally for the specific ID
-          window.singleSpaAlpineXInit[appName] = opts.xInit;
+          window.singleSpaAlpineXInit[normalizedName] = opts.xInit;
         } else {
-          window.singleSpaAlpineXInit = { [appName]: opts.xInit };
+          window.singleSpaAlpineXInit = { [normalizedName]: opts.xInit };
         }
 
         // Add x-init attribute
         childElement.setAttribute(
           "x-init",
-          `singleSpaAlpineXInit.${appName}('alpine-${appName}')`
+          `singleSpaAlpineXInit.${normalizedName}('alpine-${appName}')`
         );
       }
 
@@ -157,6 +165,7 @@ function unmount(opts, props) {
   return Promise.resolve().then(() => {
     const domElementGetter = chooseDomElementGetter(opts, props);
     const appName = props.appName || props.name;
+    const normalizedName = normalizeString(appName);
     if (typeof domElementGetter !== "function") {
       throw new Error(
         `single-spa-alpinejs: the domElementGetter for application '${
@@ -180,13 +189,13 @@ function unmount(opts, props) {
     if (opts.xInit) {
       if (
         !window.hasOwnProperty("singleSpaAlpineXInit") ||
-        typeof window.singleSpaAlpineXInit[`${appName}`] === "undefined"
+        typeof window.singleSpaAlpineXInit[`${normalizedName}`] === "undefined"
       ) {
         throw new Error(
           `single-spa-alpinejs: global function for xInit not found. Optional parameter opts.xInit if provided must be as a function that returns a promise`
         );
       }
-      delete window.singleSpaAlpineXInit[`${appName}`];
+      delete window.singleSpaAlpineXInit[`${normalizedName}`];
     }
   });
 }

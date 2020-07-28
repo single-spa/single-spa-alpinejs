@@ -10,6 +10,10 @@ describe(`single-spa-alpinejs`, () => {
     return Object.assign({}, props, originalData);
   };
 
+  function normalizeString(str) {
+    return (str && typeof str === "string")?str.replace(/[^a-z0-9,. ]/gi, '_'):'';
+  }
+
   const appOneTemplate = `
     <div class="mui-panel" x-data="{ open: false }">
       <div class="mui--test-display1">Test x-show</div>
@@ -227,7 +231,7 @@ describe(`single-spa-alpinejs`, () => {
         );
         expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
       })
-      .then(() => lifecycles.unmount(opts, props));
+      .then(() => lifecycles.unmount(props));
   });
 
   it(`renders function template with x-data as fn , x-init template and props`, () => {
@@ -288,6 +292,38 @@ describe(`single-spa-alpinejs`, () => {
         );
       })
       .then(() => lifecycles.unmount(props));
+  });
+
+  it(`app name with special character renders function template with x-data as promise, x-init template and props`, () => {
+    const opts = {
+      template: appThreeTemplate,
+      xData: (data) => appThreeDataFn(data), // pass props to x-data
+      xInit: appThreeFn,
+      domElementGetter,
+    };
+    delete window["singleSpaAlpineXInit"];
+    const lifecycles = singleSpaAlpinejs(opts);
+    const appProps = { name: '@my/app'}
+    const appName = appProps.appName || appProps.name;
+    const normalizedAppName = normalizeString(appName);
+    return lifecycles
+      .bootstrap(appProps)
+      .then(() => lifecycles.mount(appProps))
+      .then(() => {
+        const domEl = domElementAlpineGetter(appProps.name);
+        expect(domEl.getAttribute("x-data").trim()).toBe(
+          JSON.stringify(getCombinedProps(appProps, appThreeData(appProps))).trim()
+        );
+        expect(domEl.getAttribute("x-init").trim()).toBe(
+          `singleSpaAlpineXInit.${normalizedAppName}('alpine-${appName}')`.trim()
+        );
+        expect(domEl.innerHTML.trim()).toBe(appThreeTemplate.trim());
+        expect(window.singleSpaAlpineXInit).toHaveProperty(
+          `${normalizedAppName}`,
+          appThreeFn
+        );
+      })
+      .then(() => lifecycles.unmount(appProps));
   });
 
   it(`renders function template with function with only template returning a promise`, () => {
