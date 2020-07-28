@@ -55,10 +55,12 @@ function bootstrap(opts, props) {
 
 /**
  * Remove special characters from the string
- * @param {*} str 
+ * @param {*} str
  */
 function normalizeString(str) {
-  return (str && typeof str === "string")?str.replace(/[^a-z0-9,. ]/gi, '_'):'';
+  return str && typeof str === "string"
+    ? str.replace(/[^a-z0-9,. ]/gi, "_")
+    : "";
 }
 
 /**

@@ -11,7 +11,9 @@ describe(`single-spa-alpinejs`, () => {
   };
 
   function normalizeString(str) {
-    return (str && typeof str === "string")?str.replace(/[^a-z0-9,. ]/gi, '_'):'';
+    return str && typeof str === "string"
+      ? str.replace(/[^a-z0-9,. ]/gi, "_")
+      : "";
   }
 
   const appOneTemplate = `
@@ -303,7 +305,7 @@ describe(`single-spa-alpinejs`, () => {
     };
     delete window["singleSpaAlpineXInit"];
     const lifecycles = singleSpaAlpinejs(opts);
-    const appProps = { name: '@my/app'}
+    const appProps = { name: "@my/app" };
     const appName = appProps.appName || appProps.name;
     const normalizedAppName = normalizeString(appName);
     return lifecycles
@@ -312,7 +314,9 @@ describe(`single-spa-alpinejs`, () => {
       .then(() => {
         const domEl = domElementAlpineGetter(appProps.name);
         expect(domEl.getAttribute("x-data").trim()).toBe(
-          JSON.stringify(getCombinedProps(appProps, appThreeData(appProps))).trim()
+          JSON.stringify(
+            getCombinedProps(appProps, appThreeData(appProps))
+          ).trim()
         );
         expect(domEl.getAttribute("x-init").trim()).toBe(
           `singleSpaAlpineXInit.${normalizedAppName}('alpine-${appName}')`.trim()
