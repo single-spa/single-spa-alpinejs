@@ -3,6 +3,17 @@ import singleSpaAlpinejs from "./single-spa-alpinejs";
 describe(`single-spa-alpinejs`, () => {
   const domElementGetter = () => document.getElementById("test-div");
   const domElementGetterTwo = () => document.getElementById("test2-div");
+
+  const createDomElement = (htmlId) => {
+    let domElement = document.getElementById(htmlId);
+    if (!domElement) {
+      domElement = document.createElement("div");
+      domElement.id = htmlId;
+      document.body.appendChild(domElement);
+    }
+    return domElement;
+  };
+
   const domElementAlpineGetter = (id) =>
     document.getElementById(`alpine-${id}`);
 
@@ -234,6 +245,37 @@ describe(`single-spa-alpinejs`, () => {
         expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
       })
       .then(() => lifecycles.unmount(props));
+  });
+
+  it(`renders function template with x-data as object with props added after removing the 'domElement' and 'singleSpa' if present`, () => {
+    const opts = {
+      template: () => Promise.resolve(appTwoTemplate.trim()),
+      xData: { open: false },
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+    const singleSpaProps = {
+      name: "test",
+      singleSpa: {
+        BOOTSTRAPPING: "BOOTSTRAPPING",
+      },
+      domElement: createDomElement("test"),
+    };
+    const modifiedProps = { ...singleSpaProps };
+    delete modifiedProps.singleSpa;
+    delete modifiedProps.domElement;
+    return lifecycles
+      .bootstrap(singleSpaProps)
+      .then(() => lifecycles.mount(singleSpaProps))
+      .then(() => {
+        const domEl = domElementAlpineGetter(singleSpaProps.name);
+        expect(domEl.getAttribute("x-data").trim()).toBe(
+          JSON.stringify(
+            getCombinedProps(modifiedProps, { open: false })
+          ).trim()
+        );
+        expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
+      })
+      .then(() => lifecycles.unmount(singleSpaProps));
   });
 
   it(`renders function template with x-data as fn , x-init template and props`, () => {

@@ -85,6 +85,9 @@ function createAlpineElement(template, opts, props) {
     .then((originalData) => {
       // merge the opts.xData with the single-spa props
       const finalData = Object.assign({}, props, originalData);
+      // remove attributes that are not required for alpine x-data
+      delete finalData.domElement;
+      delete finalData.singleSpa;
 
       // create child Element
       let childElement = document.createElement("div");
