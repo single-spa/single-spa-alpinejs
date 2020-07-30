@@ -218,12 +218,48 @@ describe(`single-spa-alpinejs`, () => {
     expect(message).toBeTruthy();
   });
 
+  it(`throws if you don't provide an appName or name in the props`, async () => {
+    const opts = {
+      template: appOneTemplate
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+    await lifecycles.bootstrap({});
+
+    let message = false;
+    try {
+      await lifecycles.mount({});
+    } catch (e) {
+      message = e.message;
+    }
+    expect(message).toBeTruthy();
+  });
+
   it(`throws if you provide a domElementGetter that is not a function`, () => {
     expect(() => {
       singleSpaAlpinejs({
         template: {},
       });
     }).toThrow();
+  });
+
+  it(`renders function template with x-data as object, template and props with default Dom Getter`, () => {
+    const opts = {
+      template: () => Promise.resolve(appTwoTemplate.trim()),
+      xData: { open: false }
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+
+    return lifecycles
+      .bootstrap(props)
+      .then(() => lifecycles.mount(props))
+      .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
+        expect(domEl.getAttribute("x-data").trim()).toBe(
+          JSON.stringify(getCombinedProps(props, { open: false })).trim()
+        );
+        expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
+      })
+      .then(() => lifecycles.unmount(props));
   });
 
   it(`renders function template with x-data as object, template and props`, () => {
@@ -246,6 +282,27 @@ describe(`single-spa-alpinejs`, () => {
       })
       .then(() => lifecycles.unmount(props));
   });
+
+  it(`renders function template with x-data as object, template and props with domElementGetter`, () => {
+    const opts = {
+      template: () => Promise.resolve(appTwoTemplate.trim()),
+      xData: { open: false }
+    };
+    const lifecycles = singleSpaAlpinejs(opts);
+
+    return lifecycles
+      .bootstrap(props)
+      .then(() => lifecycles.mount({...props, domElementGetter}))
+      .then(() => {
+        const domEl = domElementAlpineGetter(props.name);
+        expect(domEl.getAttribute("x-data").trim()).toBe(
+          JSON.stringify(getCombinedProps(props, { open: false })).trim()
+        );
+        expect(domEl.innerHTML.trim()).toBe(appTwoTemplate.trim());
+      })
+      .then(() => lifecycles.unmount(props));
+  });
+
 
   it(`renders function template with x-data as object with props added after removing the 'domElement' and 'singleSpa' if present`, () => {
     const opts = {
